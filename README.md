@@ -1,5 +1,5 @@
 # numerous-php
-Quick and Dirty PHP Numerous API client (not complete).
+Quick and Dirty PHP [Numerous](http://numerousapp.com/) API client (not complete).
 Feel free to fork and extend.
 
 ##Example
