@@ -27,9 +27,9 @@ class Numerous {
      */
     private $_key = null;
     
-    public function __construct($key = null) {
+    public function __construct($key) {
         if (empty($key)) {
-            throw new Exception('You must supply an API key');
+            throw new \InvalidArgumentException('You must supply an API key');
         }        
        $this->_key = $key;
     }
