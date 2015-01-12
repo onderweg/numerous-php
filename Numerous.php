@@ -9,6 +9,7 @@ use DateTimeZone;
  * Numerous REST API client
  * API docs: http://docs.numerous.apiary.io/
  * 
+ * @author    Gerwert
  */
 class Numerous {
 
@@ -45,9 +46,11 @@ class Numerous {
 
     /**
      * Retrieve a Metric
+     *
+     * @param string    $metric_id  Id of metric to retrieve
      */
-    public function metric($id) {
-        $result = $this->get("/v1/metrics/{$id}", array(
+    public function metric($metric_id) {
+        $result = $this->get("/v1/metrics/{$metric_id}", array(
             "expand" => "owner"
         ));
         return $result;        
@@ -57,8 +60,10 @@ class Numerous {
      * Create a Metric, containing at least a label.
      * Other properties can be supplied in de $fields array.
      *
-     * $private Listed or not
-     * $writeable Who can update, everony or only owner
+     * @param string    $label      Metric label (name)
+     * @param array     $fields     Properties to be updated
+     * @param boolean   $private    Listed or not
+     * @param boolean   $writeable  Who can update, everyone or only owner
      */
     public function createMetric($label, $fields = array(), $private = true, $writeable = false) {
         // Merge supplied properties with defaults values
@@ -87,6 +92,9 @@ class Numerous {
 
     /**
      * Create/update a metric's photo
+     *
+     * @param string    $metric_id  Metric id
+     * @param string    $filePath   Path to local PNG file to be uploaded
      */
     public function setPhoto($metric_id, $filePath) {  
         $url = self::API_BASE_URL . "/v1/metrics/{$metric_id}/photo";
@@ -140,7 +148,7 @@ class Numerous {
 
     private function get($path, $params = array()) {
         $headers = array(                                                                          
-		    'Accept: application/json',
+            'Accept: application/json',
             'Content-Type: application/json'                                                                              		    
 		);
         $url = self::API_BASE_URL . $path;
@@ -163,9 +171,9 @@ class Numerous {
 
         // Headers
         $headers = array(                                                                          
-        	'Accept: application/json',
-		    'Content-Type: application/json',                                                                                
-		    'Content-Length: ' . strlen($data_string)                                                                      
+            'Accept: application/json',
+            'Content-Type: application/json',                                                                                
+            'Content-Length: ' . strlen($data_string)                                                                      
 		);
 
         $ch = curl_init(); //open connection                       
