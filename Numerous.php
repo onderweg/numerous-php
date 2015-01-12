@@ -61,6 +61,7 @@ class Numerous {
      * $writeable Who can update, everony or only owner
      */
     public function createMetric($label, $fields = array(), $private = true, $writeable = false) {
+        // Merge supplied properties with defaults values
         $data = array_merge(array(
             "label" => (string)$label,            
             "private" => (bool)$private,
@@ -75,6 +76,7 @@ class Numerous {
      * Some common properties:
      * - kind ("number", "currency", "percent", or "timer")
      * - units (e.g., "kWh" or "miles")
+     * - moreURL
      */
     public function updateMetric($metric_id, $fields) {
         $data = array_merge(array(           
@@ -102,17 +104,23 @@ class Numerous {
     }
 
     /**
-     * From the API documentation:
-     * "To create a new event, provide a JSON object containing either its 
-     * new value or an amount to add to its current value along with the "ADD" action"
+     * Create a new event
+     *
+     * @param string    $metric_id  Metric id
+     * @param string    $value      New value
+     * @param DateTime  $updated    Give value to create an event with an updated value different than the current time
+     * @param boolean   $add        If true sends the "action: ADD" (the value is added to the metric)
      */
-    public function createEvent($metric_id, $value, DateTime $updated = null) {        
+    public function createEvent($metric_id, $value, DateTime $updated = null, $add = false) {        
         $data = array(
             "value" => $value
         );
         if ($updated) {
-            $updated->setTimezone(new DateTimeZone('Z'));
+            $updated->setTimezone(new DateTimeZone('GMT'));
             $data['updated'] = $updated->format(self::DATE_NUMEROUS);
+        }
+        if ($add === true) {
+            $data['action'] = 'ADD';
         }
         $result = $this->post("/v1/metrics/{$metric_id}/events", $data);
         return $result;  
@@ -173,8 +181,7 @@ class Numerous {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);   
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);           
-        curl_setopt($ch, CURLOPT_USERAGENT, "gx-numerous-api");      
-        // Authentication
+        curl_setopt($ch, CURLOPT_USERAGENT, "gx-numerous-api (github.com/onderweg)");              
         // Authentication to the Numerous API occurs via Basic HTTP Auth.
         curl_setopt($ch, CURLOPT_USERPWD, $this->_key . ':');
 
