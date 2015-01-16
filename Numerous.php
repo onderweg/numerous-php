@@ -13,7 +13,7 @@ use DateTimeZone;
  */
 class Numerous {
 
-	/**
+    /**
      * Fixed portion of the Resource URL
      */
     const API_BASE_URL = 'https://api.numerousapp.com';
@@ -24,7 +24,7 @@ class Numerous {
     const DATE_NUMEROUS = 'Y-m-d\TH:i:s.000\Z';
 
     /**
-     * Secret API key
+     * Secret Numerous API key
      */
     private $_key = null;
     
@@ -32,7 +32,7 @@ class Numerous {
         if (empty($key)) {
             throw new \InvalidArgumentException('You must supply an API key');
         }        
-       $this->_key = $key;
+        $this->_key = $key;
     }
    
     /**
@@ -50,7 +50,7 @@ class Numerous {
      * @param string    $metric_id  Id of metric to retrieve
      */
     public function metric($metric_id) {
-        $result = $this->get("/v1/metrics/{$metric_id}", array(
+        $result = $this->get("/v2/metrics/{$metric_id}", array(
             "expand" => "owner"
         ));
         return $result;        
@@ -63,22 +63,22 @@ class Numerous {
      * @param string    $label      Metric label (name)
      * @param array     $fields     Properties to be updated
      * @param boolean   $private    Listed or not
-     * @param boolean   $writeable  Who can update, everyone or only owner
+     * @param boolean   $writeable  Who can update, everyone (true) or only owner (false)
      */
     public function createMetric($label, $fields = array(), $private = true, $writeable = false) {
-        // Merge supplied properties with defaults values
+        // Merge supplied properties with default values
         $data = array_merge(array(
             "label" => (string)$label,            
             "private" => (bool)$private,
             "writeable" => (bool)$writeable
         ), $fields);                
-        $result = $this->post("/v1/metrics", $data);
+        $result = $this->post("/v2/metrics", $data);
         return $result;          
     }
 
     /**
      * Update metric properties.
-     * Some common properties:
+     * Some useful optional properties:
      * - kind ("number", "currency", "percent", or "timer")
      * - units (e.g., "kWh" or "miles")
      * - moreURL
@@ -86,7 +86,7 @@ class Numerous {
     public function updateMetric($metric_id, $fields) {
         $data = array_merge(array(           
         ), $fields);
-        $result = $this->post("/v1/metrics/{$metric_id}", $data, 'PUT');
+        $result = $this->post("/v2/metrics/{$metric_id}", $data, 'PUT');
         return $result;          
     }
 
@@ -96,7 +96,13 @@ class Numerous {
      * @param string    $metric_id  Metric id
      * @param string    $filePath   Path to local PNG file to be uploaded
      */
-    public function setPhoto($metric_id, $filePath) {  
+    public function setPhoto($metric_id, $filePath) {
+        if (!is_file($filePath)) {
+            throw new \InvalidArgumentException('File not found: ' . $filePath);
+        }
+        if (exif_imagetype($filePath) != IMAGETYPE_PNG) {
+           throw new \InvalidArgumentException('Supplied image is not of type PNG');
+        }        
         $url = self::API_BASE_URL . "/v1/metrics/{$metric_id}/photo";
 
         // Post fields
@@ -109,6 +115,24 @@ class Numerous {
         curl_setopt($ch, CURLOPT_POST, true);                                                                     
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);                                                                                             
         return $this->curl_exec($ch);                   
+    }
+
+    public function setPhotoFromUrl($metric_id, $url) {
+        // Generate temp. file
+        $temp = tmpfile();
+        // Retrieve image form URL
+        $img = file_get_contents($url);        
+        fwrite($temp,$img);
+        // Get temp. file name
+        $meta_data = stream_get_meta_data($temp);
+        $filename = $meta_data["uri"];        
+        try {
+            return $this->setPhoto($metric_id, $filename);
+        } catch (Exception $e) {
+            throw $e;
+        } finally {            
+            fclose($temp); // this removes the file;
+        }
     }
 
     /**
@@ -146,11 +170,14 @@ class Numerous {
         return $result;         
     }
 
+    /**
+     * Generic POST action
+     */
     private function get($path, $params = array()) {
         $headers = array(                                                                          
             'Accept: application/json',
             'Content-Type: application/json'                                                                              		    
-		);
+        );
         $url = self::API_BASE_URL . $path;
         if (!empty($params)) {
             $url .= '?' . http_build_query($params, null, '&');            
@@ -163,10 +190,14 @@ class Numerous {
         return $this->curl_exec($ch);     	
     }
 
+    /**
+     * Generic POST/PUT action
+     */
     private function post($path, array $data, $method = 'POST', $endpoint = false) {
     	// Data payload
         $data_string = json_encode($data);
 
+        // Construct URL
         $url = self::API_BASE_URL . $path;
 
         // Headers
@@ -174,13 +205,13 @@ class Numerous {
             'Accept: application/json',
             'Content-Type: application/json',                                                                                
             'Content-Length: ' . strlen($data_string)                                                                      
-		);
+        );
 
         $ch = curl_init(); //open connection                       
         curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);                                                                     
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);                                                                  		
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);                                                                     
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);                                                                  		
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         
         return $this->curl_exec($ch);
     } 
@@ -202,7 +233,7 @@ class Numerous {
         curl_close($ch);
 
         $response = json_decode($result, false, 512, JSON_BIGINT_AS_STRING);
-        if ($httpCode != 200 && $httpCode != 201) {                     
+        if ($httpCode != 200 && $httpCode != 201) {     
             throw new NumerousException("HTTP error {$httpCode}, URL: {$url}", NumerousException::HTTP_ERROR);  
         }                          
         if ($response === null) { // Json can't be decoded
