@@ -1,6 +1,5 @@
 # numerous-php
 Quick and Dirty PHP [Numerous](http://numerousapp.com/) API client (not complete).
-Feel free to fork and extend.
 
 ##Example
 
@@ -25,3 +24,8 @@ $n->createEvent('12345', 15)
 // List all metrics
 echo $n->metrics();
 ```
+
+##License
+
+This work is licensed under a MIT license.
+Feel free to fork, extend, improve, etc. But please include a proper attribution.
