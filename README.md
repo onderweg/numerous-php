@@ -1,4 +1,8 @@
 # numerous-php
+
+**Update May 2016:**
+*Unfortunately, Numerous is shutting down. I will keep this repository online, as an increasingly faint memory of what once was.*
+
 Quick and Dirty PHP [Numerous](http://numerousapp.com/) API client (not complete).
 
 ##Example
